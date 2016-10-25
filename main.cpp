@@ -17,21 +17,21 @@
 
 #include "mbed.h"
 //#include "TCPSocket.h"
-#include "EthernetInterface.h"
+//#include "net/eth/EthernetInterface/EthernetInterface.h"
 
 
 DigitalOut led1(LED1);
-EthernetInterface eth;
+//EthernetInterface eth;
 //TCPSocket socket;
 
 int main() {
 
-    eth.connect();
-    const char *ip = eth.get_ip_address();
-    const char *mac = eth.get_mac_address();
+    //eth.connect();
+    //const char *ip = eth.get_ip_address();
+    //const char *mac = eth.get_mac_address();
 
-    printf("IP address is: %s\r\n", ip ? ip : "No IP");
-    printf("MAC address is: %s\r\n", mac ? mac : "No MAC");
+    //printf("IP address is: %s\r\n", ip ? ip : "No IP");
+    //printf("MAC address is: %s\r\n", mac ? mac : "No MAC");
 
     /*
     socket.open(&eth);
@@ -52,12 +52,13 @@ int main() {
     */
 
 
-    eth.disconnect();
+    //eth.disconnect();
     printf("Done\r\n");
     
     //BlinkyLoop
     while (true) {
         led1 = !led1;
+	printf("test...\n");
         Thread::wait(500);
     }
 }

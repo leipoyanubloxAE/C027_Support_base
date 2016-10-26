@@ -58,10 +58,27 @@ int main(void)
     MDMParser::DevStatus devStatus = {};
     MDMParser::NetStatus netStatus = {};
     bool mdmOk = mdm.init(SIMPIN, &devStatus);
-
-
     mdm.dumpDevStatus(&devStatus);
 
+
+    mdm.sendFormated("AT+CGMI\r\n");
+    mdm.waitFinalResp();
+    mdm.sendFormated("AT+GMI\r\n");
+    mdm.waitFinalResp();
+    mdm.sendFormated("AT+CGMM\r\n");
+    mdm.waitFinalResp();
+    mdm.sendFormated("AT+GMM\r\n");
+    mdm.waitFinalResp();
+    mdm.sendFormated("AT+CGMR\r\n");
+    mdm.waitFinalResp();
+    mdm.sendFormated("AT+GMR\r\n");
+    mdm.waitFinalResp();
+    mdm.sendFormated("AT+CGSN\r\n");
+    mdm.waitFinalResp();
+    mdm.sendFormated("AT+GSN\r\n");
+    mdm.waitFinalResp();
+    mdm.sendFormated("ATI[0]\r\n");
+    mdm.waitFinalResp();
     while (true) {
 	led1 = !led1;
         printf("C027_Support test code: %d\n", __LINE__);

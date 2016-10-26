@@ -54,12 +54,6 @@ int main(void)
     // Create the modem object
     MDMSerial mdm; // use mdm(D1,D0) if you connect the cellular shield to a C027
     mdm.setDebug(4); // enable this for debugging issues 
-    // initialize the modem 
-    MDMParser::DevStatus devStatus = {};
-    MDMParser::NetStatus netStatus = {};
-    bool mdmOk = mdm.init(SIMPIN, &devStatus);
-    mdm.dumpDevStatus(&devStatus);
-
 
     mdm.sendFormated("AT+CGMI\r\n");
     mdm.waitFinalResp();
@@ -84,8 +78,12 @@ int main(void)
         printf("C027_Support test code: %d\n", __LINE__);
 	Thread::wait(500);
     }
-#if 0
 
+    // initialize the modem 
+    MDMParser::DevStatus devStatus = {};
+    MDMParser::NetStatus netStatus = {};
+    bool mdmOk = mdm.init(SIMPIN, &devStatus);
+    mdm.dumpDevStatus(&devStatus);
     
     if (mdmOk) {
 #if 0
@@ -330,6 +328,5 @@ int main(void)
     }
     gps.powerOff();
     mdm.powerOff();
-#endif
     return 0;
 }

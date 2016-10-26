@@ -1,0 +1,1 @@
+modified gps loop to abort once la,lo acquired and mdm loop to only response once to queries

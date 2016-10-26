@@ -81,6 +81,7 @@ MDMParser* MDMParser::inst;
 MDMParser::MDMParser(void)
 {
     inst = this;
+    printf("%s: %d\n", __FUNCTION__, __LINE__);
     memset(&_dev, 0, sizeof(_dev));
     memset(&_net, 0, sizeof(_net));
     _net.lac = 0xFFFF;
@@ -1382,6 +1383,7 @@ bool MDMParser::setDebug(int level)
 void MDMParser::dumpDevStatus(MDMParser::DevStatus* status, 
             _DPRINT dprint, void* param) 
 {
+    printf("Modem::devStatus\r\n");
     dprint(param, "Modem::devStatus\r\n");
     const char* txtDev[] = { "Unknown", "SARA-G350", "LISA-U200", "LISA-C200", "SARA-U260", "SARA-U270", "LEON-G200" };
     if (status->dev < sizeof(txtDev)/sizeof(*txtDev) && (status->dev != DEV_UNKNOWN))

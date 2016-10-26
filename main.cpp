@@ -32,6 +32,7 @@
 //------------------------------------------------------------------------------------
  
 //#define CELLOCATE
+DigitalOut led1(LED1);
  
 int main(void)
 {
@@ -42,6 +43,8 @@ int main(void)
     char buf[512] = "";
 #endif
  
+    printf("C027_Support test code\n");
+
     // Create the GPS object
 #if 1   // use GPSI2C class
     GPSI2C gps;
@@ -55,7 +58,18 @@ int main(void)
     MDMParser::DevStatus devStatus = {};
     MDMParser::NetStatus netStatus = {};
     bool mdmOk = mdm.init(SIMPIN, &devStatus);
+
+
     mdm.dumpDevStatus(&devStatus);
+
+    while (true) {
+	led1 = !led1;
+        printf("C027_Support test code: %d\n", __LINE__);
+	Thread::wait(500);
+    }
+#if 0
+
+    
     if (mdmOk) {
 #if 0
         // file system API
@@ -299,5 +313,6 @@ int main(void)
     }
     gps.powerOff();
     mdm.powerOff();
+#endif
     return 0;
 }

@@ -5,7 +5,8 @@
 #include "SerialPipe.h"
 
 #ifdef TARGET_UBLOX_C027
- #define GPS_IF(onboard, shield) onboard
+ //#define GPS_IF(onboard, shield) onboard
+ #define GPS_IF(onboard, shield) shield
 #else
  #define GPS_IF(onboard, shield) shield
 #endif

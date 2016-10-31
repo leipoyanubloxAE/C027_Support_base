@@ -33,6 +33,17 @@
  
 //#define CELLOCATE
 DigitalOut led1(LED1);
+
+int cbString(int type, const char* buf, int len, char* str)
+{
+    printf("--> buf: %s <--\n", buf);
+    if (sscanf(buf, "\r\n%[^\r\n]s\r\n", str) == 1) {
+            /*nothing*/;
+    }
+    printf("--> str: %s <--\n", str);
+    return 0;
+}
+
  
 int main(void)
 {
@@ -54,30 +65,6 @@ int main(void)
     // Create the modem object
     MDMSerial mdm; // use mdm(D1,D0) if you connect the cellular shield to a C027
     mdm.setDebug(4); // enable this for debugging issues 
-
-    mdm.sendFormated("AT+CGMI\r\n");
-    mdm.waitFinalResp();
-    mdm.sendFormated("AT+GMI\r\n");
-    mdm.waitFinalResp();
-    mdm.sendFormated("AT+CGMM\r\n");
-    mdm.waitFinalResp();
-    mdm.sendFormated("AT+GMM\r\n");
-    mdm.waitFinalResp();
-    mdm.sendFormated("AT+CGMR\r\n");
-    mdm.waitFinalResp();
-    mdm.sendFormated("AT+GMR\r\n");
-    mdm.waitFinalResp();
-    mdm.sendFormated("AT+CGSN\r\n");
-    mdm.waitFinalResp();
-    mdm.sendFormated("AT+GSN\r\n");
-    mdm.waitFinalResp();
-    mdm.sendFormated("ATI[0]\r\n");
-    mdm.waitFinalResp();
-    while (true) {
-	led1 = !led1;
-        printf("C027_Support test code: %d\n", __LINE__);
-	Thread::wait(500);
-    }
 
     // initialize the modem 
     MDMParser::DevStatus devStatus = {};
@@ -105,6 +92,8 @@ int main(void)
         mdmOk = mdm.registerNet(&netStatus);
         mdm.dumpNetStatus(&netStatus);
     }
+
+#if 0
     if (mdmOk)
     {
         // join the internet connection 
@@ -212,7 +201,57 @@ int main(void)
         if (ret > 0) 
             printf("Ussd Got Answer: \"%s\"\r\n", buf);
     }
- 
+ #endif
+
+    MDMParser::IP ip = mdm.join(APN,USERNAME,PASSWORD);
+    if (ip == NOIP)
+        printf("Not able to join network");
+    else
+    {
+        int port = 8007;
+        int socket = mdm.socketSocket(MDMParser::IPPROTO_UDP, port);
+        if(socket>=0)
+        {
+	    char data[64];
+	    const char* host = "ubloxsingapore.ddns.net";
+            MDMParser::IP server = mdm.gethostbyname(host);
+
+            mdm.socketSetBlocking(socket, 10000);
+            memcpy(data, "\r\nUDP", 5); 
+            ret = mdm.socketSendTo(socket, server, port, data, sizeof(data)-1);
+            if (ret == sizeof(data)-1) {
+                printf("Socket SendTo %s:%d " IPSTR " %d \"%s\"\r\n", host, port, IPNUM(server), ret, data);
+            }
+            memcpy(data, "\r\nabcdef", 8); 
+            ret = mdm.socketSendTo(socket, server, port, data, sizeof(data)-1);
+            if (ret == sizeof(data)-1) {
+                printf("Socket SendTo %s:%d " IPSTR " %d \"%s\"\r\n", host, port, IPNUM(server), ret, data);
+            }
+
+            ret = mdm.socketRecvFrom(socket, &server, &port, buf, sizeof(buf)-1);
+            if (ret >= 0) {
+                printf("Socket RecvFrom " IPSTR ":%d %d \"%.*s\" \r\n", IPNUM(server),port, ret, ret,buf);
+            }
+            ret = mdm.socketRecvFrom(socket, &server, &port, buf, sizeof(buf)-1);
+            if (ret >= 0) {
+                printf("Socket RecvFrom " IPSTR ":%d %d \"%.*s\" \r\n", IPNUM(server),port, ret, ret,buf);
+            }
+
+	    mdm.socketFree(socket);
+	}
+	mdm.disconnect();
+    }
+
+
+    while (true) {
+	led1 = !led1;
+        
+        mdm.sendFormated("AT+COPS?\r\n");
+        mdm.waitFinalResp(cbString,buf, 60*1000);
+        printf("buf is (%s)\n", buf);
+	Thread::wait(500);
+    }
+
     printf("SMS and GPS Loop\r\n");
     char link[128] = "";
     unsigned int i = 0xFFFFFFFF;
@@ -290,6 +329,8 @@ int main(void)
         if (cellLocWait && (j%100 == 0 ))
             printf("Waiting for CellLocate...\r\n");                
 #endif        
+
+#if 0
         if (mdmOk && (i++ == 5000/wait)) {
             i = 0;
             // check the network status
@@ -320,6 +361,8 @@ int main(void)
                 }
             }
         }
+#endif
+
 #ifdef RTOS_H
         Thread::wait(wait);
 #else

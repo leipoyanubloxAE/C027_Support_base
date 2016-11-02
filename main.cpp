@@ -36,11 +36,11 @@ DigitalOut led1(LED1);
 
 int cbString(int type, const char* buf, int len, char* str)
 {
-    printf("--> buf: %s <--\n", buf);
+    //printf("--> buf: %s <--\n", buf);
     if (sscanf(buf, "\r\n%[^\r\n]s\r\n", str) == 1) {
             /*nothing*/;
     }
-    printf("--> str: %s <--\n", str);
+    //printf("--> str: %s <--\n", str);
     return 0;
 }
 
@@ -50,7 +50,7 @@ int formatSocketData(char* buf, char* name, char* data)
 
     sprintf(header, "POST /%s HTTP/1.0\r\nAccept: */*\r\nContent-Type: application/plain", name);
     sprintf(buf, "%s\r\nContent-Length: %d\r\n\r\n%s\r\n", header, strlen(data), data);
-    printf("buf: (%s)\n", buf);
+    //printf("buf: (%s)\n", buf);
 }
 
 int main(void)
@@ -65,6 +65,9 @@ int main(void)
     char gpsdata[256];
     char response[512];
     const char* host = "ubloxsingapore.ddns.net";
+    MDMParser::IP hostip;
+    char hostipstr[16];
+    char constdata[250]="fdsajklre2ndvfklasfkeqlw2bnjkvfdsakflewqjrk32ljfkdelsajk32l4j32rkljfkdeswalrj32klr43j2kljfekalrj32klrjfekwlafjkdesalrje2klfjdkslajrk2lrj32kljfekwlrje2klrj32klrjkewlfjeklrj2klrj32kl4j32klrjewkrjewkrelwjffdskalfjdkewr32kljfelj";
 
  
     printf("C027_Support base\n");
@@ -77,7 +80,7 @@ int main(void)
 #endif
     // Create the modem object
     MDMSerial mdm; // use mdm(D1,D0) if you connect the cellular shield to a C027
-    mdm.setDebug(4); // enable this for debugging issues 
+    //mdm.setDebug(4); // enable this for debugging issues 
 
     // initialize the modem 
     MDMParser::DevStatus devStatus = {};
@@ -96,44 +99,48 @@ int main(void)
         printf("Not able to join network");
     else
     {
-	printf("Make a Http Post Request\r\n");
+	hostip = mdm.gethostbyname(host);
+	sprintf(hostipstr, IPSTR "\n", IPNUM(hostip));
+	printf("server IP: %s\n", hostipstr);
+	printf("Make a Http Post Request to post base IP address\r\n");
         int socket = mdm.socketSocket(MDMParser::IPPROTO_TCP);
         if(socket>=0)
         {
-            mdm.socketSetBlocking(socket, 1000);
+//            mdm.socketSetBlocking(socket, 1000);
 
-	    if (mdm.socketConnect(socket, host, port))
+	    if (mdm.socketConnect(socket, hostipstr, port))
 	    {
 		char ipinfo[100];
 		sprintf(ipinfo, "{IPServer: " IPSTR ", IPClient: 0, read: 0}", IPNUM(ip));
 		formatSocketData(buf, "ipinfo", ipinfo);
 		mdm.socketSend(socket, buf, strlen(buf));
-
+#if 0
 		ret = mdm.socketRecv(socket, response, sizeof(response)-1);
 		if(ret>0)
 		    printf("Socket Recv \"%*s\"\r\n", ret, response);
-
+#endif
 		mdm.socketClose(socket);
 	    }
 	    mdm.socketFree(socket);
         }
 
+	printf("Make a Http Post Request to post gpsdata\r\n");
         for(int count=0; count<3600; count++) {
             printf("Post GPS data %d\r\n", count);
             int socket = mdm.socketSocket(MDMParser::IPPROTO_TCP);
             if(socket>=0)
 	    {
-                mdm.socketSetBlocking(socket, 1000);
-  	        if (mdm.socketConnect(socket, host, port))
+//                mdm.socketSetBlocking(socket, 1000);
+  	        if (mdm.socketConnect(socket, hostipstr, port))
 	        {
-	            sprintf(gpsdata, "gpsdata count %d\n", count);
+	            sprintf(gpsdata, "gpsdata count %d %s\n", count, constdata);
 		    formatSocketData(buf, "gpsdata", gpsdata);
 	            mdm.socketSend(socket, buf, strlen(buf));
-
+#if 0
 	            ret = mdm.socketRecv(socket, buf, strlen(buf));
 	            if(ret>0)
 	                printf("Socket Recv \"%*s\"\r\n", ret, buf);
-
+#endif
 	            mdm.socketClose(socket);
 	        }
 

@@ -44,12 +44,15 @@ int cbString(int type, const char* buf, int len, char* str)
     return 0;
 }
 
-int formatSocketData(char* buf, char* name, char* data)
+int formatSocketData(char* buf, char* method, char* name, char* data)
 {
     char header[128];
 
-    sprintf(header, "POST /%s HTTP/1.0\r\nAccept: */*\r\nContent-Type: application/plain", name);
-    sprintf(buf, "%s\r\nContent-Length: %d\r\n\r\n%s\r\n", header, strlen(data), data);
+    sprintf(header, "%s /%s HTTP/1.0\r\nAccept: */*\r\nContent-Type: application/plain", method, name);
+    if(strcmp(method, "GET")==0)
+        sprintf(buf, "%s\r\n\r\n", header);
+    else
+        sprintf(buf, "%s\r\nContent-Length: %d\r\n\r\n%s\r\n", header, strlen(data), data);
     //printf("buf: (%s)\n", buf);
 }
 
@@ -70,7 +73,7 @@ int main(void)
     char constdata[250]="fdsajklre2ndvfklasfkeqlw2bnjkvfdsakflewqjrk32ljfkdelsajk32l4j32rkljfkdeswalrj32klr43j2kljfekalrj32klrjfekwlafjkdesalrje2klfjdkslajrk2lrj32kljfekwlrje2klrj32klrjkewlfjeklrj2klrj32kl4j32klrjewkrjewkrelwjffdskalfjdkewr32kljfelj";
 
  
-    printf("C027_Support base\n");
+    printf("C027_Support Base\n");
 
     // Create the GPS object
 #if 1   // use GPSI2C class
@@ -111,8 +114,9 @@ int main(void)
 	    if (mdm.socketConnect(socket, hostipstr, port))
 	    {
 		char ipinfo[100];
-		sprintf(ipinfo, "{IPServer: " IPSTR ", IPClient: 0, read: 0}", IPNUM(ip));
-		formatSocketData(buf, "ipinfo", ipinfo);
+		//sprintf(ipinfo, "{IPServer: " IPSTR ", IPClient: 0, read: 0}", IPNUM(ip));
+		sprintf(ipinfo, IPSTR, IPNUM(ip));
+		formatSocketData(buf, "POST", "ipbase", ipinfo);
 		mdm.socketSend(socket, buf, strlen(buf));
 #if 0
 		ret = mdm.socketRecv(socket, response, sizeof(response)-1);
@@ -125,7 +129,7 @@ int main(void)
         }
 
 	printf("Make a Http Post Request to post gpsdata\r\n");
-        for(int count=0; count<3600; count++) {
+        for(int count=0; count<7200; count++) {
             printf("Post GPS data %d\r\n", count);
             int socket = mdm.socketSocket(MDMParser::IPPROTO_TCP);
             if(socket>=0)
@@ -134,10 +138,10 @@ int main(void)
   	        if (mdm.socketConnect(socket, hostipstr, port))
 	        {
 	            sprintf(gpsdata, "gpsdata count %d %s\n", count, constdata);
-		    formatSocketData(buf, "gpsdata", gpsdata);
+		    formatSocketData(buf, "POST", "gpsdata", gpsdata);
 	            mdm.socketSend(socket, buf, strlen(buf));
-#if 0
-	            ret = mdm.socketRecv(socket, buf, strlen(buf));
+#if 0 /* Skipp reading response to save time */
+	            ret = mdm.socketRecv(socket, buf, sizeof(buf)-1);
 	            if(ret>0)
 	                printf("Socket Recv \"%*s\"\r\n", ret, buf);
 #endif
@@ -164,6 +168,7 @@ int main(void)
 	Thread::wait(500);
     }
 
+#if 0
     printf("SMS and GPS Loop\r\n");
     char link[128] = "";
     const int wait = 100;
@@ -211,6 +216,8 @@ int main(void)
         ::wait_ms(wait);
 #endif
     }
+#endif
+
     gps.powerOff();
     mdm.powerOff();
     return 0;

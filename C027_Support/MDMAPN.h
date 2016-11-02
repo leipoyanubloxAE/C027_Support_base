@@ -97,6 +97,9 @@ static const APN_t apnlut[] = {
                                 _APN("phone",,)
                                 _APN("wap.cingular","WAP@CINGULARGPRS.COM","CINGULAR1")
                                 _APN("isp.cingular","ISP@CINGULARGPRS.COM","CINGULAR1") },
+// Singapore
+    { /* M1 */       "525-03",
+				_APN("sunsurf",,) },
 };
 
 inline const char* apnconfig(const char* imsi)

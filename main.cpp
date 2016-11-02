@@ -65,7 +65,7 @@ int main(void)
     char buf[512] = "";
 #endif
     int port = 8007;
-    char gpsdata[256];
+    char gpsdata[2048];
     char response[512];
     const char* host = "ubloxsingapore.ddns.net";
     MDMParser::IP hostip;
@@ -89,8 +89,22 @@ int main(void)
     MDMParser::DevStatus devStatus = {};
     MDMParser::NetStatus netStatus = {};
     bool mdmOk = mdm.init(SIMPIN, &devStatus);
+
     mdm.dumpDevStatus(&devStatus);
     
+#if 0
+    while (1) 
+    {
+	printf("test\n");
+	ret = gps.getMessage(buf, sizeof(buf));
+	if(ret>0) {
+        int len = LENGTH(ret);
+        printf("NMEA: %.*s\r\n", len-2, buf); 
+	}
+            Thread::wait(1000);
+    }
+#endif
+
     if (mdmOk) {
         // wait until we are connected
         mdmOk = mdm.registerNet(&netStatus);
@@ -129,26 +143,28 @@ int main(void)
         }
 
 	printf("Make a Http Post Request to post gpsdata\r\n");
-        for(int count=0; count<7200; count++) {
-            printf("Post GPS data %d\r\n", count);
-            int socket = mdm.socketSocket(MDMParser::IPPROTO_TCP);
-            if(socket>=0)
-	    {
+        for(int count=0; count<72000; count++) {
+	    ret = gps.getMessage(gpsdata, sizeof(gpsdata));
+	    if(ret>0) {
+            	printf("Post GPS data %s\r\n", gpsdata);
+            	int socket = mdm.socketSocket(MDMParser::IPPROTO_TCP);
+            	if(socket>=0)
+	    	{
 //                mdm.socketSetBlocking(socket, 1000);
-  	        if (mdm.socketConnect(socket, hostipstr, port))
-	        {
-	            sprintf(gpsdata, "gpsdata count %d %s\n", count, constdata);
-		    formatSocketData(buf, "POST", "gpsdata", gpsdata);
-	            mdm.socketSend(socket, buf, strlen(buf));
+  	            if (mdm.socketConnect(socket, hostipstr, port))
+	            {
+		    	formatSocketData(buf, "POST", "gpsdata", gpsdata);
+	            	mdm.socketSend(socket, buf, strlen(buf));
 #if 0 /* Skipp reading response to save time */
 	            ret = mdm.socketRecv(socket, buf, sizeof(buf)-1);
 	            if(ret>0)
 	                printf("Socket Recv \"%*s\"\r\n", ret, buf);
 #endif
-	            mdm.socketClose(socket);
-	        }
+	            	mdm.socketClose(socket);
+	            }
 
-	        mdm.socketFree(socket);
+	            mdm.socketFree(socket);
+	    	}
 	    }
             //Thread::wait(1000);
         }

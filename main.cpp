@@ -44,7 +44,6 @@ int cbString(int type, const char* buf, int len, char* str)
     return 0;
 }
 
- 
 int main(void)
 {
     int ret;
@@ -73,175 +72,135 @@ int main(void)
     mdm.dumpDevStatus(&devStatus);
     
     if (mdmOk) {
-#if 0
-        // file system API
-        const char* filename = "File";
-        char buf[] = "Hello World";
-        printf("writeFile \"%s\"\r\n", buf);
-        if (mdm.writeFile(filename, buf, sizeof(buf)))
-        {
-            memset(buf, 0, sizeof(buf));
-            int len = mdm.readFile(filename, buf, sizeof(buf));
-            if (len >= 0) 
-                printf("readFile %d \"%.*s\"\r\n", len, len, buf);
-            mdm.delFile(filename);
-        }
-#endif
- 
         // wait until we are connected
         mdmOk = mdm.registerNet(&netStatus);
         mdm.dumpNetStatus(&netStatus);
     }
-
-#if 0
-    if (mdmOk)
-    {
-        // join the internet connection 
-        MDMParser::IP ip = mdm.join(APN,USERNAME,PASSWORD);
-        if (ip == NOIP)
-            printf("Not able to join network");
-        else
-        {
-            mdm.dumpIp(ip);
-            printf("Make a Http Post Request\r\n");
-            int socket = mdm.socketSocket(MDMParser::IPPROTO_TCP);
-            if (socket >= 0)
-            {
-                mdm.socketSetBlocking(socket, 10000);
-                if (mdm.socketConnect(socket, "mbed.org", 80))
-                {
-                    const char http[] = "GET /media/uploads/mbed_official/hello.txt HTTP/1.0\r\n\r\n";
-                    mdm.socketSend(socket, http, sizeof(http)-1);
-                
-                    ret = mdm.socketRecv(socket, buf, sizeof(buf)-1);
-                    if (ret > 0)
-                        printf("Socket Recv \"%*s\"\r\n", ret, buf);
-                    mdm.socketClose(socket);
-                }
-                mdm.socketFree(socket);
-            }
-            
-            int port = 7;
-            const char* host = "echo.u-blox.com";
-            MDMParser::IP ip = mdm.gethostbyname(host);
-            char data[] = "\r\nxxx Socket Hello World\r\n"
-#ifdef LARGE_DATA
-                        "00  0123456789 0123456789 0123456789 0123456789 0123456789 \r\n"
-                        "01  0123456789 0123456789 0123456789 0123456789 0123456789 \r\n"
-                        "02  0123456789 0123456789 0123456789 0123456789 0123456789 \r\n"
-                        "03  0123456789 0123456789 0123456789 0123456789 0123456789 \r\n"
-                        "04  0123456789 0123456789 0123456789 0123456789 0123456789 \r\n"
-                        
-                        "05  0123456789 0123456789 0123456789 0123456789 0123456789 \r\n"
-                        "06  0123456789 0123456789 0123456789 0123456789 0123456789 \r\n"
-                        "07  0123456789 0123456789 0123456789 0123456789 0123456789 \r\n"
-                        "08  0123456789 0123456789 0123456789 0123456789 0123456789 \r\n"
-                        "09  0123456789 0123456789 0123456789 0123456789 0123456789 \r\n"
-            
-                        "10  0123456789 0123456789 0123456789 0123456789 0123456789 \r\n"
-                        "11  0123456789 0123456789 0123456789 0123456789 0123456789 \r\n"
-                        "12  0123456789 0123456789 0123456789 0123456789 0123456789 \r\n"
-                        "13  0123456789 0123456789 0123456789 0123456789 0123456789 \r\n"
-                        "14  0123456789 0123456789 0123456789 0123456789 0123456789 \r\n"
-                        
-                        "15  0123456789 0123456789 0123456789 0123456789 0123456789 \r\n"
-                        "16  0123456789 0123456789 0123456789 0123456789 0123456789 \r\n"
-                        "17  0123456789 0123456789 0123456789 0123456789 0123456789 \r\n"
-                        "18  0123456789 0123456789 0123456789 0123456789 0123456789 \r\n"
-                        "19  0123456789 0123456789 0123456789 0123456789 0123456789 \r\n"
-#endif            
-                        "End\r\n";
-                
-            printf("Testing TCP sockets with ECHO server\r\n");
-            socket = mdm.socketSocket(MDMParser::IPPROTO_TCP);
-            if (socket >= 0)
-            {
-                mdm.socketSetBlocking(socket, 10000);
-                if (mdm.socketConnect(socket, host, port)) {
-                    memcpy(data, "\r\nTCP", 5); 
-                    ret = mdm.socketSend(socket, data, sizeof(data)-1);
-                    if (ret == sizeof(data)-1) {
-                        printf("Socket Send %d \"%s\"\r\n", ret, data);
-                    }
-                    ret = mdm.socketRecv(socket, buf, sizeof(buf)-1);
-                    if (ret >= 0) {
-                        printf("Socket Recv %d \"%.*s\"\r\n", ret, ret, buf);
-                    }
-                    mdm.socketClose(socket);
-                }
-                mdm.socketFree(socket);
-            }
- 
-            printf("Testing UDP sockets with ECHO server\r\n");
-            socket = mdm.socketSocket(MDMParser::IPPROTO_UDP, port);
-            if (socket >= 0)
-            {
-                mdm.socketSetBlocking(socket, 10000);
-                memcpy(data, "\r\nUDP", 5); 
-                ret = mdm.socketSendTo(socket, ip, port, data, sizeof(data)-1);
-                if (ret == sizeof(data)-1) {
-                    printf("Socket SendTo %s:%d " IPSTR " %d \"%s\"\r\n", host, port, IPNUM(ip), ret, data);
-                }
-                ret = mdm.socketRecvFrom(socket, &ip, &port, buf, sizeof(buf)-1);
-                if (ret >= 0) {
-                    printf("Socket RecvFrom " IPSTR ":%d %d \"%.*s\" \r\n", IPNUM(ip),port, ret, ret,buf);
-                }
-                mdm.socketFree(socket);
-            }
-            
-            // disconnect  
-            mdm.disconnect();
-        }
-    
-        // http://www.geckobeach.com/cellular/secrets/gsmcodes.php
-        // http://de.wikipedia.org/wiki/USSD-Codes
-        const char* ussd = "*130#"; // You may get answer "UNKNOWN APPLICATION"
-        printf("Ussd Send Command %s\r\n", ussd);
-        ret = mdm.ussdCommand(ussd, buf);
-        if (ret > 0) 
-            printf("Ussd Got Answer: \"%s\"\r\n", buf);
-    }
- #endif
 
     MDMParser::IP ip = mdm.join(APN,USERNAME,PASSWORD);
     if (ip == NOIP)
         printf("Not able to join network");
     else
     {
-        int port = 8007;
-        int socket = mdm.socketSocket(MDMParser::IPPROTO_UDP, port);
+	printf("Make a Http Post Request\r\n");
+        int socket = mdm.socketSocket(MDMParser::IPPROTO_TCP);
         if(socket>=0)
         {
-	    char data[64];
+            int port = 8007;
+	    char gpsdata[256];
+	    char response[512];
 	    const char* host = "ubloxsingapore.ddns.net";
-            MDMParser::IP server = mdm.gethostbyname(host);
 
             mdm.socketSetBlocking(socket, 10000);
-            memcpy(data, "\r\nUDP", 5); 
-            ret = mdm.socketSendTo(socket, server, port, data, sizeof(data)-1);
-            if (ret == sizeof(data)-1) {
-                printf("Socket SendTo %s:%d " IPSTR " %d \"%s\"\r\n", host, port, IPNUM(server), ret, data);
-            }
-            memcpy(data, "\r\nabcdef", 8); 
-            ret = mdm.socketSendTo(socket, server, port, data, sizeof(data)-1);
-            if (ret == sizeof(data)-1) {
-                printf("Socket SendTo %s:%d " IPSTR " %d \"%s\"\r\n", host, port, IPNUM(server), ret, data);
-            }
 
-            ret = mdm.socketRecvFrom(socket, &server, &port, buf, sizeof(buf)-1);
-            if (ret >= 0) {
-                printf("Socket RecvFrom " IPSTR ":%d %d \"%.*s\" \r\n", IPNUM(server),port, ret, ret,buf);
-            }
-            ret = mdm.socketRecvFrom(socket, &server, &port, buf, sizeof(buf)-1);
-            if (ret >= 0) {
-                printf("Socket RecvFrom " IPSTR ":%d %d \"%.*s\" \r\n", IPNUM(server),port, ret, ret,buf);
-            }
+	    if (mdm.socketConnect(socket, host, port))
+	    {
+		char ipinfo[100];
+		sprintf(ipinfo, "{IPServer: " IPSTR ", IPClient: 0, read: 0}", IPNUM(ip));
+		char header[] = "POST /ipinfo HTTP/1.0\r\nAccept: */*\r\nContent-Type: application/plain";
+		sprintf(buf, "%s\r\nContent-Length: %d\r\n\r\n%s\r\n", header, strlen(ipinfo), ipinfo);
+		printf("buf: (%s)\n", buf);
+		mdm.socketSend(socket, buf, strlen(buf));
+
+		ret = mdm.socketRecv(socket, response, sizeof(response)-1);
+		if(ret>0)
+		    printf("Socket Recv \"%*s\"\r\n", ret, response);
+
+		mdm.socketClose(socket);
+
+     		for(int count=0; count<300; count++) {
+		printf("---> count: %d buf: (%s)\n", count, buf);
+		mdm.socketConnect(socket, host, port);
+		mdm.socketSend(socket, buf, strlen(buf));
+
+		ret = mdm.socketRecv(socket, response, sizeof(response)-1);
+		if(ret>0)
+		    printf("Socket Recv \"%*s\"\r\n", ret, response);
+		mdm.socketClose(socket);
+      		Thread::wait(1000);
+		}
+
+	    }
+	    mdm.socketFree(socket);
+	}
+	mdm.disconnect();
+
+     for(int count=0; count<300; count++) {
+	printf("Post GPS data %d\r\n", count);
+        int socket = mdm.socketSocket(MDMParser::IPPROTO_TCP);
+        if(socket>=0)
+	{
+            int port = 8007;
+	    char gpsdata[256];
+	    const char* host = "ubloxsingapore.ddns.net";
+
+            mdm.socketSetBlocking(socket, 10000);
+  	        if (mdm.socketConnect(socket, host, port))
+	        {
+		    char header[] = "POST /gpsdata HTTP/1.0\r\nContent-Type: application/plain\r\n";
+	 	    sprintf(gpsdata, "gpsdata count %d\n", count);
+		    sprintf(buf, "%s%s\r\n\r\n", header, count);
+		    printf("buf: (%s)\n", buf);
+		    mdm.socketSend(socket, buf, strlen(buf));
+
+		    ret = mdm.socketRecv(socket, buf, strlen(buf));
+		    if(ret>0)
+		        printf("Socket Recv \"%*s\"\r\n", ret, buf);
+
+		    mdm.socketClose(socket);
+	        }
 
 	    mdm.socketFree(socket);
 	}
 	mdm.disconnect();
+      Thread::wait(1000);
+      }
     }
+#if 0
+	printf("Make a Http Post Request\r\n");
+        int socket = mdm.socketSocket(MDMParser::IPPROTO_TCP);
+        if(socket>=0)
+        {
+            int port = 8007;
+	    char gpsdata[256];
+	    const char* host = "ubloxsingapore.ddns.net";
 
+            mdm.socketSetBlocking(socket, 10000);
+
+	    if (mdm.socketConnect(socket, host, port))
+	    {
+		char ipinfo[100];
+		char header[] = "POST /ipinfo HTTP/1.0\r\nContent-Type: application/plain\r\n";
+		char buf[256];
+		sprintf(ipinfo, "{IPServer: " IPSTR ", IPClient: 0, read: 0}", IPNUM(ip));
+		sprintf(buf, "%s%s\r\n\r\n", header, ipinfo);
+		printf("buf: (%s)\n", buf);
+		mdm.socketSend(socket, buf, sizeof(buf)-1);
+
+		ret = mdm.socketRecv(socket, buf, sizeof(buf)-1);
+		if(ret>0)
+		    printf("Socket Recv \"%*s\"\r\n", ret, buf);
+
+		for(int count=0; count<300; count++) {
+		   char headergps[] = "POST /gpsdata HTTP/1.0\r\nContent-Type: application/plain\r\n";
+		   sprintf(gpsdata, "gps rawdata %d\n", count);
+		   printf("Sending %s\n", gpsdata);
+		   sprintf(buf, "%s%s\r\n\r\n", headergps, gpsdata);
+		   mdm.socketSend(socket, buf, sizeof(buf)-1);
+		   ret = mdm.socketRecv(socket, buf, sizeof(buf)-1);
+		   if(ret>0)
+		       printf("Socket Recv \"%*s\"\r\n", ret, buf);
+
+		   Thread::wait(1000);
+		}
+		
+		mdm.socketClose(socket);
+	    }
+	    mdm.socketFree(socket);
+	}
+	mdm.disconnect();
+    }
+#endif
 
     while (true) {
 	led1 = !led1;
@@ -254,28 +213,12 @@ int main(void)
 
     printf("SMS and GPS Loop\r\n");
     char link[128] = "";
-    unsigned int i = 0xFFFFFFFF;
     const int wait = 100;
     bool abort = false;
-#ifdef CELLOCATE    
-    const int sensorMask = 3;  // Hybrid: GNSS + CellLocate       
-    const int timeoutMargin = 5; // seconds
-    const int submitPeriod = 60; // 1 minutes in seconds
-    const int targetAccuracy = 1; // meters
-    unsigned int j = submitPeriod * 1000/wait;
-    bool cellLocWait = false;
-    MDMParser::CellLocData loc;
-    
-    //Token can be released from u-blox site, when you got one replace "TOKEN" below 
-    if (!mdm.cellLocSrvHttp("TOKEN"))
-            mdm.cellLocSrvUdp();        
-    mdm.cellLocConfigSensor(1);   // Deep scan mode
-    //mdm.cellUnsolIndication(1);
-#endif
+
     //DigitalOut led(LED1);
     while (!abort) {
     //    led = !led;
-#ifndef CELLOCATE
         while ((ret = gps.getMessage(buf, sizeof(buf))) > 0)
         {
             int len = LENGTH(ret);
@@ -308,60 +251,6 @@ int main(void)
                 }
             }
         }
-#endif        
-#ifdef CELLOCATE
-        if (mdmOk && (j++ == submitPeriod * 1000/wait)) {   
-            j=0;
-            printf("CellLocate Request\r\n");
-            mdm.cellLocRequest(sensorMask, submitPeriod-timeoutMargin, targetAccuracy);
-            cellLocWait = true;
-        }
-        if (cellLocWait && mdm.cellLocGet(&loc)){           
-            cellLocWait = false;     
-            printf("CellLocate position received, sensor_used: %d,  \r\n", loc.sensorUsed );           
-            printf("  latitude: %0.5f, longitude: %0.5f, altitute: %d\r\n", loc.latitue, loc.longitude, loc.altitutude);
-            if (loc.sensorUsed == 1)
-                printf("  uncertainty: %d, speed: %d, direction: %d, vertical_acc: %d, satellite used: %d \r\n", loc.uncertainty,loc.speed,loc.direction,loc.verticalAcc,loc.svUsed);        
-            if (loc.sensorUsed == 1 || loc.sensorUsed == 2)
-            sprintf(link, "I am here!\n"
-                        "https://maps.google.com/?q=%.5f,%.5f", loc.latitue, loc.longitude);       
-        }
-        if (cellLocWait && (j%100 == 0 ))
-            printf("Waiting for CellLocate...\r\n");                
-#endif        
-
-#if 0
-        if (mdmOk && (i++ == 5000/wait)) {
-            i = 0;
-            // check the network status
-            if (mdm.checkNetStatus(&netStatus)) {
-                mdm.dumpNetStatus(&netStatus, fprintf, stdout);
-            }
-                
-            // checking unread sms
-            int ix[8];
-            int n = mdm.smsList("REC UNREAD", ix, 8);
-            if (8 < n) n = 8;
-            while (0 < n--)
-            {
-                char num[32];
-                printf("Unread SMS at index %d\r\n", ix[n]);
-                if (mdm.smsRead(ix[n], num, buf, sizeof(buf))) {
-                    printf("Got SMS from \"%s\" with text \"%s\"\r\n", num, buf);
-                    printf("Delete SMS at index %d\r\n", ix[n]);
-                    mdm.smsDelete(ix[n]);
-                    // provide a reply
-                    const char* reply = "Hello my friend";
-                    if (strstr(buf, /*w*/"here are you"))
-                        reply = *link ? link : "I don't know"; // reply wil location link
-                    else if (strstr(buf, /*s*/"hutdown"))
-                        abort = true, reply = "bye bye";
-                    printf("Send SMS reply \"%s\" to \"%s\"\r\n", reply, num);
-                    mdm.smsSend(num, reply);
-                }
-            }
-        }
-#endif
 
 #ifdef RTOS_H
         Thread::wait(wait);

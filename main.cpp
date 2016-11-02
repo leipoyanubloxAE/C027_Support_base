@@ -44,6 +44,15 @@ int cbString(int type, const char* buf, int len, char* str)
     return 0;
 }
 
+int formatSocketData(char* buf, char* name, char* data)
+{
+    char header[128];
+
+    sprintf(header, "POST /%s HTTP/1.0\r\nAccept: */*\r\nContent-Type: application/plain", name);
+    sprintf(buf, "%s\r\nContent-Length: %d\r\n\r\n%s\r\n", header, strlen(data), data);
+    printf("buf: (%s)\n", buf);
+}
+
 int main(void)
 {
     int ret;
@@ -52,8 +61,13 @@ int main(void)
 #else
     char buf[512] = "";
 #endif
+    int port = 8007;
+    char gpsdata[256];
+    char response[512];
+    const char* host = "ubloxsingapore.ddns.net";
+
  
-    printf("C027_Support test code\n");
+    printf("C027_Support base\n");
 
     // Create the GPS object
 #if 1   // use GPSI2C class
@@ -86,20 +100,13 @@ int main(void)
         int socket = mdm.socketSocket(MDMParser::IPPROTO_TCP);
         if(socket>=0)
         {
-            int port = 8007;
-	    char gpsdata[256];
-	    char response[512];
-	    const char* host = "ubloxsingapore.ddns.net";
-
-            mdm.socketSetBlocking(socket, 10000);
+            mdm.socketSetBlocking(socket, 1000);
 
 	    if (mdm.socketConnect(socket, host, port))
 	    {
 		char ipinfo[100];
 		sprintf(ipinfo, "{IPServer: " IPSTR ", IPClient: 0, read: 0}", IPNUM(ip));
-		char header[] = "POST /ipinfo HTTP/1.0\r\nAccept: */*\r\nContent-Type: application/plain";
-		sprintf(buf, "%s\r\nContent-Length: %d\r\n\r\n%s\r\n", header, strlen(ipinfo), ipinfo);
-		printf("buf: (%s)\n", buf);
+		formatSocketData(buf, "ipinfo", ipinfo);
 		mdm.socketSend(socket, buf, strlen(buf));
 
 		ret = mdm.socketRecv(socket, response, sizeof(response)-1);
@@ -107,101 +114,40 @@ int main(void)
 		    printf("Socket Recv \"%*s\"\r\n", ret, response);
 
 		mdm.socketClose(socket);
-
-     		for(int count=0; count<300; count++) {
-		printf("---> count: %d buf: (%s)\n", count, buf);
-		mdm.socketConnect(socket, host, port);
-		mdm.socketSend(socket, buf, strlen(buf));
-
-		ret = mdm.socketRecv(socket, response, sizeof(response)-1);
-		if(ret>0)
-		    printf("Socket Recv \"%*s\"\r\n", ret, response);
-		mdm.socketClose(socket);
-      		Thread::wait(1000);
-		}
-
 	    }
 	    mdm.socketFree(socket);
-	}
-	mdm.disconnect();
+        }
 
-     for(int count=0; count<300; count++) {
-	printf("Post GPS data %d\r\n", count);
-        int socket = mdm.socketSocket(MDMParser::IPPROTO_TCP);
-        if(socket>=0)
-	{
-            int port = 8007;
-	    char gpsdata[256];
-	    const char* host = "ubloxsingapore.ddns.net";
-
-            mdm.socketSetBlocking(socket, 10000);
+        for(int count=0; count<3600; count++) {
+            printf("Post GPS data %d\r\n", count);
+            int socket = mdm.socketSocket(MDMParser::IPPROTO_TCP);
+            if(socket>=0)
+	    {
+                mdm.socketSetBlocking(socket, 1000);
   	        if (mdm.socketConnect(socket, host, port))
 	        {
-		    char header[] = "POST /gpsdata HTTP/1.0\r\nContent-Type: application/plain\r\n";
-	 	    sprintf(gpsdata, "gpsdata count %d\n", count);
-		    sprintf(buf, "%s%s\r\n\r\n", header, count);
-		    printf("buf: (%s)\n", buf);
-		    mdm.socketSend(socket, buf, strlen(buf));
+	            sprintf(gpsdata, "gpsdata count %d\n", count);
+		    formatSocketData(buf, "gpsdata", gpsdata);
+	            mdm.socketSend(socket, buf, strlen(buf));
 
-		    ret = mdm.socketRecv(socket, buf, strlen(buf));
-		    if(ret>0)
-		        printf("Socket Recv \"%*s\"\r\n", ret, buf);
+	            ret = mdm.socketRecv(socket, buf, strlen(buf));
+	            if(ret>0)
+	                printf("Socket Recv \"%*s\"\r\n", ret, buf);
 
-		    mdm.socketClose(socket);
+	            mdm.socketClose(socket);
 	        }
 
-	    mdm.socketFree(socket);
-	}
-	mdm.disconnect();
-      Thread::wait(1000);
-      }
-    }
-#if 0
-	printf("Make a Http Post Request\r\n");
-        int socket = mdm.socketSocket(MDMParser::IPPROTO_TCP);
-        if(socket>=0)
-        {
-            int port = 8007;
-	    char gpsdata[256];
-	    const char* host = "ubloxsingapore.ddns.net";
-
-            mdm.socketSetBlocking(socket, 10000);
-
-	    if (mdm.socketConnect(socket, host, port))
-	    {
-		char ipinfo[100];
-		char header[] = "POST /ipinfo HTTP/1.0\r\nContent-Type: application/plain\r\n";
-		char buf[256];
-		sprintf(ipinfo, "{IPServer: " IPSTR ", IPClient: 0, read: 0}", IPNUM(ip));
-		sprintf(buf, "%s%s\r\n\r\n", header, ipinfo);
-		printf("buf: (%s)\n", buf);
-		mdm.socketSend(socket, buf, sizeof(buf)-1);
-
-		ret = mdm.socketRecv(socket, buf, sizeof(buf)-1);
-		if(ret>0)
-		    printf("Socket Recv \"%*s\"\r\n", ret, buf);
-
-		for(int count=0; count<300; count++) {
-		   char headergps[] = "POST /gpsdata HTTP/1.0\r\nContent-Type: application/plain\r\n";
-		   sprintf(gpsdata, "gps rawdata %d\n", count);
-		   printf("Sending %s\n", gpsdata);
-		   sprintf(buf, "%s%s\r\n\r\n", headergps, gpsdata);
-		   mdm.socketSend(socket, buf, sizeof(buf)-1);
-		   ret = mdm.socketRecv(socket, buf, sizeof(buf)-1);
-		   if(ret>0)
-		       printf("Socket Recv \"%*s\"\r\n", ret, buf);
-
-		   Thread::wait(1000);
-		}
-		
-		mdm.socketClose(socket);
+	        mdm.socketFree(socket);
 	    }
-	    mdm.socketFree(socket);
-	}
-	mdm.disconnect();
+            //Thread::wait(1000);
+        }
+        
+   
     }
-#endif
+    mdm.disconnect();
 
+
+    // Blocking code
     while (true) {
 	led1 = !led1;
         

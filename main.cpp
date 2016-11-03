@@ -108,7 +108,7 @@ int main(void)
             int socket = mdm.socketSocket(MDMParser::IPPROTO_TCP);
             if (socket >= 0)
             {
-                mdm.socketSetBlocking(socket, 10000);
+                //mdm.socketSetBlocking(socket, 10000);
                 if (mdm.socketConnect(socket, hostipstr, port))
                 {
 	 	    char ipinfo[20];
@@ -130,7 +130,6 @@ int main(void)
             while (1)
             {
 		memset(gpsdata, 0, BUFSIZE);
-		printf("sizeof gpsdata: %d\n", sizeof(gpsdata));
 	        ret = gps.getMessage(gpsdata, BUFSIZE);
 		if (LENGTH(ret)>0) 
                 {
@@ -140,7 +139,7 @@ int main(void)
                     int socket = mdm.socketSocket(MDMParser::IPPROTO_TCP);
                     if (socket >= 0)
                     {
-                        mdm.socketSetBlocking(socket, 10000);
+                        //mdm.socketSetBlocking(socket, 10000);
                 	if (mdm.socketConnect(socket, hostipstr, port))
                 	{
 		    	    formatSocketData(buf, "POST", "gpsdata", gpsdata);

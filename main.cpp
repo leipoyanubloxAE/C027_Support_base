@@ -31,15 +31,13 @@
 #define PASSWORD    NULL 
 //------------------------------------------------------------------------------------
  
-//#define CELLOCATE
+#define BUFSIZE 512
 
 int cbString(int type, const char* buf, int len, char* str)
 {
-    //printf("--> buf: %s <--\n", buf);
     if (sscanf(buf, "\r\n%[^\r\n]s\r\n", str) == 1) {
             /*nothing*/;
     }
-    //printf("--> str: %s <--\n", str);
     return 0;
 }
 
@@ -52,7 +50,6 @@ int formatSocketData(char* buf, char* method, char* name, char* data)
         sprintf(buf, "%s\r\n\r\n", header);
     else
         sprintf(buf, "%s\r\nContent-Length: %d\r\n\r\n%s\r\n", header, strlen(data), data);
-    //printf("buf: (%s)\n", buf);
 }
 
 int main(void)
@@ -60,12 +57,19 @@ int main(void)
     int ret;
     char buf[512] = "";
     int port = 8007;
-    char gpsdata[512];
+    char* gpsdata=NULL;
     const char* host = "ubloxsingapore.ddns.net";
     MDMParser::IP hostip;
     char hostipstr[16];
  
     printf("C027_Support Base\n");
+    gpsdata = (char*)malloc(sizeof(char) * BUFSIZE);
+    if(gpsdata==NULL)
+    {
+        printf("Failed to allocate memory\n");
+	return 0;
+    }
+    memset(gpsdata, 0, sizeof(BUFSIZE));
 
     // Create the GPS object
 #if 1   // use GPSI2C class
@@ -111,11 +115,13 @@ int main(void)
 		    sprintf(ipinfo, IPSTR, IPNUM(ip));
 		    formatSocketData(buf, "POST", "ipbase", ipinfo);
 					
-                    mdm.socketSend(socket, buf, sizeof(buf)-1);
+                    mdm.socketSend(socket, buf, strlen(buf));
                 
+#if 0
                     ret = mdm.socketRecv(socket, buf, sizeof(buf)-1);
                     if (ret > 0)
                         printf("Socket Recv \"%*s\"\r\n", ret, buf);
+#endif
                     mdm.socketClose(socket);
                 }
                 mdm.socketFree(socket);
@@ -123,11 +129,14 @@ int main(void)
             
             while (1)
             {
-	        ret = gps.getMessage(gpsdata, sizeof(gpsdata));
+		memset(gpsdata, 0, BUFSIZE);
+		printf("sizeof gpsdata: %d\n", sizeof(gpsdata));
+	        ret = gps.getMessage(gpsdata, BUFSIZE);
 		if (LENGTH(ret)>0) 
                 {
                     int len = LENGTH(ret);
-                    printf("NMEA: %.*s\r\n", len-2, buf); 
+                    //printf("NMEA: %.*s\r\n", len-2, gpsdata); 
+                    printf("NMEA: %s\r\n", gpsdata); 
                     int socket = mdm.socketSocket(MDMParser::IPPROTO_TCP);
                     if (socket >= 0)
                     {
@@ -136,11 +145,12 @@ int main(void)
                 	{
 		    	    formatSocketData(buf, "POST", "gpsdata", gpsdata);
 					
-                    	    mdm.socketSend(socket, buf, sizeof(buf)-1);
-                
+                    	    mdm.socketSend(socket, buf, strlen(buf));
+#if 0
                     	    ret = mdm.socketRecv(socket, buf, sizeof(buf)-1);
                     	    if (ret > 0)
                         	printf("Socket Recv \"%*s\"\r\n", ret, buf);
+#endif
                     	    mdm.socketClose(socket);
                 	}
                 	mdm.socketFree(socket);
@@ -149,7 +159,6 @@ int main(void)
                 {
                     printf("Unable to read gps message\n");
                 }
-                ::wait_ms(1000);
 	    }
 
             // disconnect  

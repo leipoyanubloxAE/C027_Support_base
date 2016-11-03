@@ -59,19 +59,13 @@ int formatSocketData(char* buf, char* method, char* name, char* data)
 int main(void)
 {
     int ret;
-#ifdef LARGE_DATA
-    char buf[2048] = "";
-#else
     char buf[512] = "";
-#endif
     int port = 8007;
-    char gpsdata[2048];
-    char response[512];
+    char gpsdata[512];
+    char response[256];
     const char* host = "ubloxsingapore.ddns.net";
     MDMParser::IP hostip;
     char hostipstr[16];
-    char constdata[250]="fdsajklre2ndvfklasfkeqlw2bnjkvfdsakflewqjrk32ljfkdelsajk32l4j32rkljfkdeswalrj32klr43j2kljfekalrj32klrjfekwlafjkdesalrje2klfjdkslajrk2lrj32kljfekwlrje2klrj32klrjkewlfjeklrj2klrj32kl4j32klrjewkrjewkrelwjffdskalfjdkewr32kljfelj";
-
  
     printf("C027_Support Base\n");
 
@@ -83,7 +77,7 @@ int main(void)
 #endif
     // Create the modem object
     MDMSerial mdm; // use mdm(D1,D0) if you connect the cellular shield to a C027
-    //mdm.setDebug(4); // enable this for debugging issues 
+    mdm.setDebug(4); // enable this for debugging issues 
 
     // initialize the modem 
     MDMParser::DevStatus devStatus = {};
@@ -92,8 +86,9 @@ int main(void)
 
     mdm.dumpDevStatus(&devStatus);
     
-#if 0
-    while (1) 
+#if 1 
+    int count = 0;
+    while (count<20) 
     {
 	printf("test\n");
 	ret = gps.getMessage(buf, sizeof(buf));
@@ -101,7 +96,8 @@ int main(void)
         int len = LENGTH(ret);
         printf("NMEA: %.*s\r\n", len-2, buf); 
 	}
-            Thread::wait(1000);
+	count++;
+        Thread::wait(1000);
     }
 #endif
 
@@ -118,6 +114,7 @@ int main(void)
     {
 	hostip = mdm.gethostbyname(host);
 	sprintf(hostipstr, IPSTR "\n", IPNUM(hostip));
+
 	printf("server IP: %s\n", hostipstr);
 	printf("Make a Http Post Request to post base IP address\r\n");
         int socket = mdm.socketSocket(MDMParser::IPPROTO_TCP);
@@ -143,7 +140,7 @@ int main(void)
         }
 
 	printf("Make a Http Post Request to post gpsdata\r\n");
-        for(int count=0; count<72000; count++) {
+        for(int count=0; count<7200; count++) {
 	    ret = gps.getMessage(gpsdata, sizeof(gpsdata));
 	    if(ret>0) {
             	printf("Post GPS data %s\r\n", gpsdata);

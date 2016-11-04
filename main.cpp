@@ -31,7 +31,8 @@
 #define PASSWORD    NULL 
 //------------------------------------------------------------------------------------
  
-#define BUFSIZE 512
+#define BUFSIZE 1024
+#define GPSSIZE 1024
 
 int cbString(int type, const char* buf, int len, char* str)
 {
@@ -41,21 +42,34 @@ int cbString(int type, const char* buf, int len, char* str)
     return 0;
 }
 
-int formatSocketData(char* buf, char* method, char* name, char* data)
+int formatSocketData(char* buf, char* method, char* name, char* data, int length)
 {
     char header[128];
+    int pos;
 
+    memset(buf, 0, sizeof(buf));
     sprintf(header, "%s /%s HTTP/1.0\r\nAccept: */*\r\nContent-Type: application/plain", method, name);
-    if(strcmp(method, "GET")==0)
+    if(strcmp(method, "GET")==0) {
         sprintf(buf, "%s\r\n\r\n", header);
-    else
-        sprintf(buf, "%s\r\nContent-Length: %d\r\n\r\n%s\r\n", header, strlen(data), data);
+	return (strlen(buf));
+    } else {
+        //sprintf(buf, "%s\r\nContent-Length: %d\r\n\r\n%s\r\n", header, length, data);
+        sprintf(buf, "%s\r\nContent-Length: %d\r\n\r\n", header, length);
+        pos = strlen(buf);
+        if((pos+length) < BUFSIZE-2) {
+	    memcpy(&buf[pos], data, length);
+	    sprintf(&buf[pos+length], "\r\n");
+        } else {
+	    printf("too much data\n");
+	}
+	return ((pos+length) < BUFSIZE -2 ?  pos + length + 2 : BUFSIZE );
+    }
 }
 
 int main(void)
 {
     int ret;
-    char buf[512] = "";
+    char* buf = NULL;
     int port = 8007;
     char* gpsdata=NULL;
     const char* host = "ubloxsingapore.ddns.net";
@@ -63,13 +77,14 @@ int main(void)
     char hostipstr[16];
  
     printf("C027_Support Base\n");
-    gpsdata = (char*)malloc(sizeof(char) * BUFSIZE);
+    buf = (char*)malloc(sizeof(char) * BUFSIZE);
+    gpsdata = (char*)malloc(sizeof(char) * GPSSIZE);
     if(gpsdata==NULL)
     {
         printf("Failed to allocate memory\n");
 	return 0;
     }
-    memset(gpsdata, 0, sizeof(BUFSIZE));
+    memset(gpsdata, 0, sizeof(GPSSIZE));
 
     // Create the GPS object
 #if 1   // use GPSI2C class
@@ -112,10 +127,11 @@ int main(void)
                 if (mdm.socketConnect(socket, hostipstr, port))
                 {
 	 	    char ipinfo[20];
+		    int bufLength = 0;
 		    sprintf(ipinfo, IPSTR, IPNUM(ip));
-		    formatSocketData(buf, "POST", "ipbase", ipinfo);
+		    bufLength = formatSocketData(buf, "POST", "ipbase", ipinfo, strlen(ipinfo));
 					
-                    mdm.socketSend(socket, buf, strlen(buf));
+                    mdm.socketSend(socket, buf, bufLength);
                 
 #if 0
                     ret = mdm.socketRecv(socket, buf, sizeof(buf)-1);
@@ -129,22 +145,28 @@ int main(void)
             
             while (1)
             {
-		memset(gpsdata, 0, BUFSIZE);
-	        ret = gps.getMessage(gpsdata, BUFSIZE);
+		memset(gpsdata, 0, GPSSIZE);
+	        ret = gps.getMessage(gpsdata, GPSSIZE);
+		if (ret == GPSParser::WAIT) {
+		    Thread::wait(500);
+		    continue;
+		}
+
 		if (LENGTH(ret)>0) 
                 {
                     int len = LENGTH(ret);
                     //printf("NMEA: %.*s\r\n", len-2, gpsdata); 
-                    printf("NMEA: %s\r\n", gpsdata); 
+                    printf("RET: 0x%x protocol: %d len: %d strlen: %d\n", ret, PROTOCOL(ret), len, strlen(gpsdata)); 
                     int socket = mdm.socketSocket(MDMParser::IPPROTO_TCP);
                     if (socket >= 0)
                     {
                         //mdm.socketSetBlocking(socket, 10000);
                 	if (mdm.socketConnect(socket, hostipstr, port))
                 	{
-		    	    formatSocketData(buf, "POST", "gpsdata", gpsdata);
+			    int bufLength = 0;
+		    	    bufLength = formatSocketData(buf, "POST", "gpsdata", gpsdata, len);
 					
-                    	    mdm.socketSend(socket, buf, strlen(buf));
+                    	    mdm.socketSend(socket, buf, bufLength);
 #if 0
                     	    ret = mdm.socketRecv(socket, buf, sizeof(buf)-1);
                     	    if (ret > 0)

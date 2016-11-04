@@ -5,6 +5,8 @@
  #include "C027_api.h"
 #endif
 
+#define NO_GPS_MESSAGE_PARSING
+
 void GPSParser::powerOff(void)
 {
     // set the gps into backup mode using the command RMX-LPREQ
@@ -19,6 +21,7 @@ int GPSParser::_getMessage(Pipe<char>* pipe, char* buf, int len)
     int fr = pipe->free();
     if (len > sz)
         len = sz;
+#ifndef NO_GPS_MESSAGE_PARSING
     while (len > 0)
     {
         // NMEA protocol
@@ -47,6 +50,10 @@ int GPSParser::_getMessage(Pipe<char>* pipe, char* buf, int len)
     }
     if (unkn > 0)                      
         return UNKNOWN | pipe->get(buf,unkn); 
+#else
+    if (len > 0)
+        return UNKNOWN | pipe->get(buf,len); 
+#endif
     return WAIT;
 }
 
@@ -336,7 +343,7 @@ int GPSI2C::send(const char* buf, int len)
     if (len) 
     {
         if (!I2C::write(_i2cAdr,&REGSTREAM,sizeof(REGSTREAM),true))
-            sent = send(buf, len);
+            sent = _send(buf, len);
         stop();
     }
     return sent;
